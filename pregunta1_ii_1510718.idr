@@ -32,4 +32,4 @@ main =
         -- suma 3 + 3 == 6
         putStr $ show (suma (Suc (Suc (Suc Cero))) (Suc (Suc (Suc Cero)))) ++ "\n"
         -- multiplicacion 3 * 3 == 9
-	    putStr $ show (multiplicacion (Suc (Suc (Suc Cero))) (Suc (Suc (Suc Cero))))
+        putStr $ show (multiplicacion (Suc (Suc (Suc Cero))) (Suc (Suc (Suc Cero))))
