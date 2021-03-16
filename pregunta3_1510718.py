@@ -96,8 +96,6 @@ def def_struct(nombre, tipos):
       structs[nombre].insert(0, unions[fst_t][0])
 
 
-
-
 # Define un nuevo registro variante de nombre <nombre>. La definición de los campos 
 # del registro variante viene dada por la lista en [<tipo>].
 def def_union(nombre, tipos):
@@ -125,6 +123,7 @@ def def_union(nombre, tipos):
       if in_unions(t):
         alineacion = mcm(alineacion, unions[t][0])
     unions[nombre].insert(0, int(alineacion))
+
 
 
 # Función recursiva utilizada para imprimir la información correspondiente al tipo ingresado 
@@ -199,22 +198,32 @@ def describir(nombre, curr_byte, bytes_des, sin_empaquetar, nivel=0):
     init_byte = curr_byte
     # Tamaño del registro variante
     max_size = 0
+    # Desperdicio en bytes del registro variante
+    min_des = 99999
     # Llamamos recursivamente a la función para imprimir la información de cada uno de sus campos.
     # Ademas, calculamos el tamaño del registro variante, que será el tamaño máximo de los tamaños de sus campos.
     for reg in unions[nombre][1:]:
       tmp_byte, tmp_des = describir(reg, curr_byte, bytes_des, sin_empaquetar, nivel+1)
       max_size = max(max_size, tmp_byte - init_byte)
+      # Aqui encontramos el minimo valor calculado, ya que esto será sumado al final para encontrar el desperdicio de bytes
+      min_des = min(min_des, tmp_des - tmp_byte)
+    # Una vez encontrado el tamaño de la union, podemos calcular el desperdicio de la union.
+    # En esta operación, le restamos el tamaño del campo con menor desperdicio de bytes al tamaño total de la Union, y luego  
+    # le sumamos los bytes desperdiciados por este campo, asi obtenemos el mínimo entre los desperdicios de cada una de sus 
+    # campos, es decir, ((tam. Union) - (tam. Campo)) + (desp. bytes). En la parte izquierda de la suma obtenemos los bytes 
+    # desperdiciados al final del campo, y en la parte derecha obtenemos los bytes desperdiciados dentro del campo.
+    min_des = max_size + init_byte + min_des
     # Imprimimos la información
     print(("\t"*nivel) + "posición inicial: byte " + str(init_byte) + "\n" +
     ("\t"*nivel) + "tamaño: " + str(max_size) + "\n" +
-    ("\t"*nivel) + "desperdicio de bytes: " + str(bytes_des))
+    ("\t"*nivel) + "desperdicio de bytes: " + str(min_des))
     # Aumentamos el contador con el tamaño del registro variante
     curr_byte += max_size
     # Si el lenguaje no empaqueta, imprimimos la información referente a la alineación del registro variante
     # y se modifica el contador de espacio desperdiciado.
     if sin_empaquetar:
       print(("\t"*nivel) + "alineación: " + str(unions[nombre][0]))
-      bytes_des += init_des
+      bytes_des += init_des + min_des
     print()
     return curr_byte, bytes_des
     
@@ -298,19 +307,23 @@ def describir_reordenado(nombre, curr_byte, bytes_des, nivel=0):
     
     init_byte = curr_byte
     max_size = 0
+    min_des = 9999999
     for reg in unions[nombre][1:]:
       tmp_byte, tmp_des, tmp_info_campos, tmp_alineacion = describir_reordenado(reg, curr_byte, bytes_des, nivel+1)
       info_campos += tmp_info_campos
       max_size = max(max_size, tmp_byte - init_byte)
-    
+      min_des = min(min_des, tmp_des - tmp_byte)
+
+    min_des = max_size + init_byte + min_des
+
     info = ("\t"*nivel) + "Registro variable " + nombre + " ->\n" + info_campos + \
     ("\t"*nivel) + "posición inicial: byte " + str(init_byte) + "\n" + \
     ("\t"*nivel) + "tamaño: " + str(max_size) + "\n" + \
-    ("\t"*nivel) + "desperdicio de bytes: " + str(bytes_des) + "\n" + \
+    ("\t"*nivel) + "desperdicio de bytes: " + str(min_des) + "\n" + \
     ("\t"*nivel) + "alineación: " + str(alineacion) + "\n\n"
 
     curr_byte += max_size
-    bytes_des += init_des
+    bytes_des += init_des + min_des
     return curr_byte, bytes_des, info, alineacion
     
   else:
@@ -321,11 +334,6 @@ def describir_reordenado(nombre, curr_byte, bytes_des, nivel=0):
 def Menu():
   global atoms, structs, unions 
   while(True):
-    #######################################################################
-    print(atoms)           ################################################
-    print(structs)         ################################################
-    print(unions)          ################################################
-    #######################################################################
     # Obtenemos el input
     print("\n\nPosibles acciones:\n\tATOMICO <nombre> <representación> <alineación>\n\tSTRUCT <nombre> [<tipo>]\n\tUNION <nombre> [<tipo>]\n\tDESCRIBIR <nombre>\n\tSALIR")
     accion = input("Ingrese una acción para proceder: ").split(" ")
