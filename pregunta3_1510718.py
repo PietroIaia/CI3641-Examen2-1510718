@@ -141,8 +141,9 @@ def describir(nombre, curr_byte, bytes_des, sin_empaquetar, nivel=0):
     # y se modifica el contador de espacio desperdiciado.
     if sin_empaquetar:
       if curr_byte % atoms[nombre][1] != 0:
-        bytes_des += atoms[nombre][1] - (curr_byte % atoms[nombre][1])
-        curr_byte += bytes_des
+        tmp = atoms[nombre][1] - (curr_byte % atoms[nombre][1])
+        bytes_des += tmp
+        curr_byte += tmp
     # Imprimimos la información
     print(("\t"*nivel) + "Tipo atómico " + nombre + "\n" +
     ("\t"*nivel) + "posición inicial: byte " + str(curr_byte) + "\n" +
@@ -239,8 +240,9 @@ def describir_reordenado(nombre, curr_byte, bytes_des, nivel=0):
   if in_atoms(nombre):
 
     if curr_byte % atoms[nombre][1] != 0:
-      bytes_des += atoms[nombre][1] - (curr_byte % atoms[nombre][1])
-      curr_byte += bytes_des
+      tmp = atoms[nombre][1] - (curr_byte % atoms[nombre][1])
+      bytes_des += tmp
+      curr_byte += tmp
     
     info = ("\t"*nivel) + "Tipo atómico " + nombre + "\n" + \
     ("\t"*nivel) + "posición inicial: byte " + str(curr_byte) + "\n" + \
