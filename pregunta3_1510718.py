@@ -227,9 +227,6 @@ def describir(nombre, curr_byte, bytes_des, sin_empaquetar, nivel=0):
       bytes_des += init_des + min_des
     print()
     return curr_byte, bytes_des
-    
-  else:
-    print("El nombre ingresado no corresponde a ningún registro.")
 
 
 # Función recursiva utilizada para obtener la información correspondiente al tipo ingresado
@@ -360,9 +357,6 @@ def describir_reordenado(nombre, curr_byte, bytes_des, nivel=0):
     # Se modifica el contador de espacio desperdiciado.
     bytes_des += init_des + min_des
     return curr_byte, bytes_des, info, alineacion
-    
-  else:
-    print("El nombre ingresado no corresponde a ningún registro.")
 
 
 # Menu principal del programa
@@ -391,17 +385,21 @@ def Menu():
       def_union(accion[1], accion[2:])
     # Se imprime la información correspondiente al tipo ingresado.
     elif len(accion) == 2 and accion[0] == "DESCRIBIR":
-      print("Si el lenguaje guarda registros y registros variantes sin empaquetar:")
-      describir(accion[1], 0, 0, True)
-      print("Si el lenguaje guarda registros y registros variantes empaquetados:")
-      describir(accion[1], 0, 0, False)
-      print("El lenguaje guarda registros y registros viariantes reordenando los campos de manera óptima:")
-      print(describir_reordenado(accion[1], 0, 0)[2])
+      if in_atoms(accion[1]) or in_structs(accion[1]) or in_unions(accion[1]):
+        print("Si el lenguaje guarda registros y registros variantes sin empaquetar:")
+        describir(accion[1], 0, 0, True)
+        print("Si el lenguaje guarda registros y registros variantes empaquetados:")
+        describir(accion[1], 0, 0, False)
+        print("El lenguaje guarda registros y registros viariantes reordenando los campos de manera óptima:")
+        print(describir_reordenado(accion[1], 0, 0)[2])
+      else:
+        print("El nombre ingresado no corresponde a ningún tipo creado en el programa.")
+        continue
     # Sale del programa
     elif len(accion) == 1 and accion[0] == "SALIR":
       break
     else:
-      print("\nLa acción que ingresó no existe, intente de nuevo.")
+      print("La acción que ingresó no existe, intente de nuevo.")
 
 
 
