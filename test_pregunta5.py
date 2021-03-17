@@ -8,7 +8,7 @@ import subprocess
 
 # Para correr pruebas de cobertura: pip install coverage
 
-class pregunta3Test(TestCase):
+class pregunta5Test(TestCase):
 
 
     def test_input(self):
