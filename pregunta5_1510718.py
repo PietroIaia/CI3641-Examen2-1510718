@@ -18,8 +18,15 @@ def r_innecesario(arr):
 def rev_nombre(input):
   for elem in input:
     if (elem != "(") and (elem != ")") and (not elem in nombres.keys()):
-      return False
-  return True
+      return False, elem
+  return True, None
+
+def original_dict(nombre):
+  for k in nombres[nombre]:
+    if k == "arbol_tipo":
+      continue
+    if not k[0].isupper():
+      nombres[nombre][k] = "var"
 
 
 # Árbol utilizado para representar el tipo de un nombre definido
@@ -89,7 +96,10 @@ class ArbolTipo:
       return self.hijoIzquierda.__str__()
     elif not self.hijoIzquierda and self.hijoDerecha:
       if nombres[self.nombre][self.val] != "var":
-        return nombres[self.nombre][self.val] + "->" + self.hijoDerecha.__str__()
+        if "->" in nombres[self.nombre][self.val]:
+          return "(" + nombres[self.nombre][self.val] + ")->" + self.hijoDerecha.__str__()
+        else:
+          return nombres[self.nombre][self.val] + "->" + self.hijoDerecha.__str__()
       return self.val + "->" + self.hijoDerecha.__str__()
     else:
       if nombres[self.nombre][self.val] != "var":
@@ -102,7 +112,8 @@ class ArbolTipo:
       return True
     return False
   
-  # ||| Where the real MAGIC happens (o eso se trata). |||
+
+  # ||| Where the real MAGIC happens (o eso se trata) |||
   # Método utilizado para consultar el tipo de la expresión pasada en input.
   # Se definió como método del arbol ya que podemos realizar la construcción del tipo resultante de
   # manera recursiva, iterando entre los nodos del árbol y revisando si el input y el tipo son compatibles.
@@ -131,13 +142,13 @@ class ArbolTipo:
         # un error de unificación.
         else:
           if nombres[self.nombre][self.val] != nombres[input[0]]["arbol_tipo"].val:
-            return False, "ERROR: No se pudo unificar " + nombres[self.nombre][self.val] + " con " + nombres[input[0]]["arbol_tipo"].val
+            return False, "ERROR, no se pudo unificar " + nombres[self.nombre][self.val] + " con " + nombres[input[0]]["arbol_tipo"].val
         # Si aun no hemos terminado de revisar el tipo, seguimos.
         if self.hijoDerecha:
           return self.hijoDerecha.revisar_tipo(input[1:], num_paren)
         # Si ya no queda más input por revisar, pero en el input hay mas parámetros, devolvemos un error.
         else:
-          return False, "ERROR: Ingresó más parametros en la función " + self.nombre + " de los que debería."
+          return False, "ERROR, ingresó más parametros en la función " + self.nombre + " de los que debería."
 
       # Si el primer elemento del input es un nombre con un árbol de tipo mas complejo, debemos obtener el tipo
       # resultante de este (su imagen).
@@ -155,17 +166,18 @@ class ArbolTipo:
         # en el árbol de tipo del nombre que estaba en el input, y así obtener el tipo resultante de esta 
         # sub-expresión, que se utilizará para seguir construyendo el tipo final de la expresión.
         tipo_result = nombres[input[0]]["arbol_tipo"].revisar_tipo(input[1:j], 0)
+        original_dict(input[0])
         # Si tipo_result regresó un tipo y no un error.
         if type(tipo_result) == str:
           # Verificamos si el valor del nodo actual es una variable. 
           # Si lo es, actualizamos su valor real.
-          if nombres[self.nombre][self.val] == "var" and (tipo_result in nombres[input[0]].keys()):
+          if nombres[self.nombre][self.val] == "var":
             nombres[self.nombre][self.val] = tipo_result
           # Si el nodo no es una variable, verificamos si sus tipos son iguales, y si no lo son devolvemos 
           # un error de unificación.
           elif nombres[self.nombre][self.val] != "var":
             if nombres[self.nombre][self.val] != tipo_result:
-              return False, "ERROR: No se pudo unificar " + nombres[self.nombre][self.val] + " con " + tipo_result
+              return False, "ERROR, no se pudo unificar " + nombres[self.nombre][self.val] + " con " + tipo_result
         # Si tipo_result regresó un error, se devuelve este error.
         else:
           return tipo_result
@@ -174,8 +186,7 @@ class ArbolTipo:
           return self.hijoDerecha.revisar_tipo(input[j:], num_paren)
         # Si ya no queda más input por revisar, pero en el input hay mas parámetros, devolvemos un error.
         else:
-          return False, "ERROR: Ingresó más parametros en la función " + self.nombre + " de los que debería."
-
+          return False, "ERROR, ingresó más parametros en la función " + self.nombre + " de los que debería."
 
 
 
@@ -201,21 +212,27 @@ def Menu():
       accion[2] = r_innecesario(re.split(r'(\W)', accion[2]))
       # Construimos el árbol que representa el tipo del nombre
       nombres[accion[1]]["arbol_tipo"] = ArbolTipo(accion[1], accion[2])
+      print("Se definió ’" + accion[1] + "’ con tipo " + nombres[accion[1]]["arbol_tipo"].__str__())
 
     elif len(accion) == 2 and accion[0] == "TIPO":
       # Removemos los caracteres inncesarios del input
       accion[1] = r_innecesario(re.split(r'(\W)', accion[1]))
       # Verificamos que todos los elementos del input, aparte de los paréntesis,
       # son nombres previamente definidos.
-      if rev_nombre(accion[1]):
+      todo_def = rev_nombre(accion[1])
+      if todo_def[0]:
         # Obtenemos el tipo resultante de la expresión.
         tipo = nombres[accion[1][0]]["arbol_tipo"].revisar_tipo(accion[1][1:], 0)
+        original_dict(accion[1][0])
         # Si se generó un error, se imprime.
         if type(tipo) != str:
           print(tipo[1])
           continue
         # Si todo salió bien, imprimimos el tipo resultante
         print(tipo)
+      else:
+        print("ERROR, el nombre ’" + todo_def[1] + "’ no ha sido definido")
+        continue
 
     elif len(accion) == 1 and accion[0] == "SALIR":
       break
