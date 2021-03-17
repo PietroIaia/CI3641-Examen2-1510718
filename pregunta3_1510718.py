@@ -231,61 +231,83 @@ def describir(nombre, curr_byte, bytes_des, sin_empaquetar, nivel=0):
   else:
     print("El nombre ingresado no corresponde a ningún registro.")
 
-  
 
+# Función recursiva utilizada para obtener la información correspondiente al tipo ingresado
+# si el lenguaje guarda registros y registros viariantes reordenando los campos de manera
+# óptima. Su funcionalidad es casi identica a la función anterior, solo que en esta trabajamos
+# con las posibles permutaciones de los campos que nos permitan ahorrar la mayor cantidad de espacio
+# posible, respetando alineaciones.
 def describir_reordenado(nombre, curr_byte, bytes_des, nivel=0):
   global atoms, structs, unions
 
   # Si el tipo es un tipo atómico
   if in_atoms(nombre):
-
+    # Se calcula la posición inicial del tipo tomando en cuenta su alineación
+    # y se modifica el contador de espacio desperdiciado.
     if curr_byte % atoms[nombre][1] != 0:
       tmp = atoms[nombre][1] - (curr_byte % atoms[nombre][1])
       bytes_des += tmp
       curr_byte += tmp
-    
+    # Obtenemos la información
     info = ("\t"*nivel) + "Tipo atómico " + nombre + "\n" + \
     ("\t"*nivel) + "posición inicial: byte " + str(curr_byte) + "\n" + \
     ("\t"*nivel) + "tamaño: " + str(atoms[nombre][0]) + "\n" + \
     ("\t"*nivel) + "alineación: " + str(atoms[nombre][1]) + "\n\n"
-
+    # Aumentamos el contador con el tamaño del tipo atómico
     curr_byte += atoms[nombre][0]
     return curr_byte, bytes_des, info, atoms[nombre][1]
 
   # Si el tipo es un registro
   elif in_structs(nombre):
+    # Variable utlizada para encontrar el tamaño optimo del struct.
     op_size = 999999999
+    # Variable donde se guardará la info del struct, que será impresa luego.
     info = None
+    # Byte siguiente al struct óptimo
     final_curr_byte = None
+    # Desperdicio de bytes del struct óptimo
     final_bytes_des = None
+    # Byte principal de struct original
     original_cur_byte = curr_byte
+    # Desperdicio de bytes hasta antes del struct original
     original_bytes_des = bytes_des
 
+    # Iteramos sobre todas las permutaciones de la lista de campos del structs para
+    # poder encontrar la mejor, es decir, la que nos haga ahorrar más espacio.
     for perm in list(itertools.permutations(structs[nombre][1:])):
+      # Se inicializan las variables para la iteración
       curr_byte = original_cur_byte
       bytes_des = original_bytes_des
       info_campos = ""
       fst = True
       alineacion = None
 
+      # Se calcula la posición inicial del registro tomando en cuenta su alineación y se guarda 
+      # la cantidad de espacio desperdiciado para luego modificar el contador de espacio desperdiciado.
       init_des = 0
       if curr_byte % structs[nombre][0] != 0:
         init_des = structs[nombre][0] - (curr_byte % structs[nombre][0])
         curr_byte += init_des
-      
+      # Posición inicial del registro
       init_byte = curr_byte
+      # Llamamos recursivamente a la función para obtener la información de cada uno de sus campos
       for reg in perm:
         curr_byte, bytes_des, tmp_info_campos, tmp_alineacion = describir_reordenado(reg, curr_byte, bytes_des, nivel+1)
         info_campos += tmp_info_campos
+        # Cálculamos la alineación del struct (Ya que cambiamos el órden de los campos)
         if fst:
           alineacion = tmp_alineacion
           fst = False
-      
+      # Calculamos el tamaño del registo
       size = curr_byte - init_byte
+      # Si el tamaño es menor que el tamaño del struct óptimo conseguido hasta el momento,
+      # este struct se convierte en el óptimo
       if size < op_size:
+        # Actualizamos el tamaño, byte siguiente y bytes desperdiciados del struct óptimo
         op_size = size
         final_curr_byte = curr_byte
         final_bytes_des = bytes_des + init_des
+        # Obtenemos la información del struct óptimo
         info = ("\t"*nivel) + "Registro " + nombre + " ->\n" + info_campos + \
         ("\t"*nivel) + "posición inicial: byte " + str(init_byte) + "\n" + \
         ("\t"*nivel) + "tamaño: " + str(size) + "\n" + \
@@ -295,36 +317,47 @@ def describir_reordenado(nombre, curr_byte, bytes_des, nivel=0):
   
   # Si el tipo es un registro variante
   elif in_unions(nombre):
-    
+    # Calculamos la alineación del registro variable ya que, si contiene un struct, puede que las
+    # alineaciones de sus campos hayan cambiado, lo cual obligará a que la alineacion del registro
+    # variable cambie.
     alineacion = 1
     for reg in unions[nombre][1:]:
       alineacion = mcm(alineacion, describir_reordenado(reg, curr_byte, bytes_des, nivel+1)[3])
     alineacion = int(alineacion)
     
-    info_campos = ""
+    # Se calcula la posición inicial del registro variante tomando en cuenta su alineación y se guarda  
+    # la cantidad de espacio desperdiciado para luego modificar el contador de espacio desperdiciado.
     init_des = 0
     if curr_byte % alineacion != 0:
       init_des = alineacion - (curr_byte % alineacion)
       curr_byte += init_des
-    
+    # Posición inicial del registro variante.
     init_byte = curr_byte
+    # Tamaño del registro variante.
     max_size = 0
+    # Desperdicio en bytes del registro variante.
     min_des = 9999999
+    # Variable que guardará la información de los campos del registro variante,
+    # para poder imprimirlos luego.
+    info_campos = ""
+    # Llamamos recursivamente a la función para obtener la información de cada uno de sus campos.
+    # Ademas, calculamos el tamaño del registro variante, que será el tamaño máximo de los tamaños de sus campos.
     for reg in unions[nombre][1:]:
       tmp_byte, tmp_des, tmp_info_campos, tmp_alineacion = describir_reordenado(reg, curr_byte, bytes_des, nivel+1)
       info_campos += tmp_info_campos
       max_size = max(max_size, tmp_byte - init_byte)
       min_des = min(min_des, tmp_des - tmp_byte)
-
+    # El cálculo del desperdicio de bytes para un registro variante es igual al explicado en la función anterior.
     min_des = max_size + init_byte + min_des
-
+    # Obtenemos la información.
     info = ("\t"*nivel) + "Registro variable " + nombre + " ->\n" + info_campos + \
     ("\t"*nivel) + "posición inicial: byte " + str(init_byte) + "\n" + \
     ("\t"*nivel) + "tamaño: " + str(max_size) + "\n" + \
     ("\t"*nivel) + "desperdicio de bytes: " + str(min_des) + "\n" + \
     ("\t"*nivel) + "alineación: " + str(alineacion) + "\n\n"
-
+    # Aumentamos el contador con el tamaño del registro variante.
     curr_byte += max_size
+    # Se modifica el contador de espacio desperdiciado.
     bytes_des += init_des + min_des
     return curr_byte, bytes_des, info, alineacion
     
@@ -364,7 +397,7 @@ def Menu():
       describir(accion[1], 0, 0, False)
       print("El lenguaje guarda registros y registros viariantes reordenando los campos de manera óptima:")
       print(describir_reordenado(accion[1], 0, 0)[2])
-    # Se sale del programa
+    # Sale del programa
     elif len(accion) == 1 and accion[0] == "SALIR":
       break
     else:
