@@ -21,6 +21,7 @@ def rev_nombre(input):
       return False, elem
   return True, None
 
+# Función utilizada para devolver el diccionario de 'nombre' a su estado original
 def original_dict(nombre):
   for k in nombres[nombre]:
     if k == "arbol_tipo":
@@ -132,62 +133,58 @@ class ArbolTipo:
       return self.revisar_tipo(input[1:], num_paren-1)
     # Si el primer elemento del input no es un paréntesis.
     elif self.val and input[0] != "(" and input[0] != ")":
-      # Si el primer elemento del input es un nombre con un árbol de tipo que consiste solo en una hoja.
-      if nombres[input[0]]["arbol_tipo"].es_hoja():
-        # Verificamos si el valor del nodo actual es una variable. 
-        # Si lo es, actualizamos su valor real.
-        if nombres[self.nombre][self.val] == "var":
-          nombres[self.nombre][self.val] = nombres[input[0]]["arbol_tipo"].val
-        # Si el nodo no es una variable, verificamos si sus tipos son iguales, y si no lo son devolvemos 
-        # un error de unificación.
-        else:
-          if nombres[self.nombre][self.val] != nombres[input[0]]["arbol_tipo"].val:
-            return False, "ERROR, no se pudo unificar " + nombres[self.nombre][self.val] + " con " + nombres[input[0]]["arbol_tipo"].val
-        # Si aun no hemos terminado de revisar el tipo, seguimos.
-        if self.hijoDerecha:
-          return self.hijoDerecha.revisar_tipo(input[1:], num_paren)
-        # Si ya no queda más input por revisar, pero en el input hay mas parámetros, devolvemos un error.
-        else:
-          return False, "ERROR, ingresó más parametros en la función " + self.nombre + " de los que debería."
-
-      # Si el primer elemento del input es un nombre con un árbol de tipo mas complejo, debemos obtener el tipo
-      # resultante de este (su imagen).
-      else:
-        j, tmp = 1, num_paren
-        # Si el nombre es una función entre paréntesis (con parámetros), debemos encontrar
-        # cuando se cierra este paréntesis.
-        if num_paren > 0:
-          while j < len(input):
-            if input[j] == "(": tmp += 1
-            elif input[j] == ")": tmp -= 1
-            if tmp == 0: break
-            j += 1
-        # Una vez que sabemos cuando se cierra el paréntesis, podemos verificar el tipo de la sub-expresión
-        # en el árbol de tipo del nombre que estaba en el input, y así obtener el tipo resultante de esta 
-        # sub-expresión, que se utilizará para seguir construyendo el tipo final de la expresión.
-        tipo_result = nombres[input[0]]["arbol_tipo"].revisar_tipo(input[1:j], 0)
-        original_dict(input[0])
-        # Si tipo_result regresó un tipo y no un error.
-        if type(tipo_result) == str:
+      j = 1
+      if not self.es_hoja():
+        # Si el primer elemento del input es un nombre con un árbol de tipo que consiste solo en una hoja.
+        if nombres[input[0]]["arbol_tipo"].es_hoja():
           # Verificamos si el valor del nodo actual es una variable. 
           # Si lo es, actualizamos su valor real.
           if nombres[self.nombre][self.val] == "var":
-            nombres[self.nombre][self.val] = tipo_result
+            nombres[self.nombre][self.val] = nombres[input[0]]["arbol_tipo"].val
           # Si el nodo no es una variable, verificamos si sus tipos son iguales, y si no lo son devolvemos 
           # un error de unificación.
-          elif nombres[self.nombre][self.val] != "var":
-            if nombres[self.nombre][self.val] != tipo_result:
-              return False, "ERROR, no se pudo unificar " + nombres[self.nombre][self.val] + " con " + tipo_result
-        # Si tipo_result regresó un error, se devuelve este error.
-        else:
-          return tipo_result
-        # Si aun no hemos terminado de revisar el tipo, seguimos.
-        if self.hijoDerecha:
-          return self.hijoDerecha.revisar_tipo(input[j:], num_paren)
-        # Si ya no queda más input por revisar, pero en el input hay mas parámetros, devolvemos un error.
-        else:
-          return False, "ERROR, ingresó más parametros en la función " + self.nombre + " de los que debería."
+          else:
+            if nombres[self.nombre][self.val] != nombres[input[0]]["arbol_tipo"].val:
+              return False, "ERROR, no se pudo unificar " + nombres[self.nombre][self.val] + " con " + nombres[input[0]]["arbol_tipo"].val
 
+        # Si el primer elemento del input es un nombre con un árbol de tipo mas complejo, debemos obtener el tipo
+        # resultante de este (su imagen).
+        else:
+          tmp = num_paren
+          # Si el nombre es una función entre paréntesis (con parámetros), debemos encontrar
+          # cuando se cierra este paréntesis.
+          if num_paren > 0:
+            while j < len(input):
+              if input[j] == "(": tmp += 1
+              elif input[j] == ")": tmp -= 1
+              if tmp == 0: break
+              j += 1
+          # Una vez que sabemos cuando se cierra el paréntesis, podemos verificar el tipo de la sub-expresión
+          # en el árbol de tipo del nombre que estaba en el input, y así obtener el tipo resultante de esta 
+          # sub-expresión, que se utilizará para seguir construyendo el tipo final de la expresión.
+          tipo_result = nombres[input[0]]["arbol_tipo"].revisar_tipo(input[1:j], 0)
+          # Devolvemos el diccionario del nombre en el input a su estado original
+          original_dict(input[0])
+          # Si tipo_result regresó un tipo y no un error.
+          if type(tipo_result) == str:
+            # Verificamos si el valor del nodo actual es una variable. 
+            # Si lo es, actualizamos su valor real.
+            if nombres[self.nombre][self.val] == "var":
+              nombres[self.nombre][self.val] = tipo_result
+            # Si el nodo no es una variable, verificamos si sus tipos son iguales, y si no lo son devolvemos 
+            # un error de unificación.
+            elif nombres[self.nombre][self.val] != "var":
+              if nombres[self.nombre][self.val] != tipo_result:
+                return False, "ERROR, no se pudo unificar " + nombres[self.nombre][self.val] + " con " + tipo_result
+          # Si tipo_result regresó un error, se devuelve este error.
+          else:
+            return tipo_result
+
+        # Si aun no hemos terminado de revisar el tipo, seguimos.
+        return self.hijoDerecha.revisar_tipo(input[j:], num_paren)
+          
+      else:
+        return False, "ERROR, ingresó más parámetros en ’" + self.nombre + "’ de los que debería."
 
 
 # Menu principal del programa.
@@ -223,6 +220,7 @@ def Menu():
       if todo_def[0]:
         # Obtenemos el tipo resultante de la expresión.
         tipo = nombres[accion[1][0]]["arbol_tipo"].revisar_tipo(accion[1][1:], 0)
+        # Devolvemos el diccionario del nombre a su estdo inicial
         original_dict(accion[1][0])
         # Si se generó un error, se imprime.
         if type(tipo) != str:
